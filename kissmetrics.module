@@ -3,8 +3,6 @@
 /**
  * @file
  * This module allows you to log Rule events as KissMetrics events.
- *
- * @author Farhad Hedayati Fard <hf.farhad@gmail.com>
  */
 
 define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");

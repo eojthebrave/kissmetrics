@@ -67,6 +67,9 @@ function kissmetrics_configuration_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Config form validation callback.
+ */
 function kissmetrics_configuration_form_validate($form, &$form_state) {
   $form_state['values']['kissmetrics_pages'] = trim($form_state['values']['kissmetrics_pages']);
   if (!file_exists($form_state['values']['log_dir'])) {
@@ -77,6 +80,9 @@ function kissmetrics_configuration_form_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Config form submit callback.
+ */
 function kissmetrics_configuration_form_submit($form, &$form_state) {
   variable_set('kissmetrics_api_key', $form_state['values']['api_key']);
   variable_set('kissmetrics_visibility_pages', $form_state['values']['kissmetrics_pages']);

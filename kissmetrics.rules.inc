@@ -1,8 +1,8 @@
 <?php
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * @file
+ * Defines required Rules actions for KISSmetrics module.
  */
 
 /**
