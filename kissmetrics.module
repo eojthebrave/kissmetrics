@@ -1,0 +1,178 @@
+<?php
+
+/**
+ * @file
+ * This module allows you to log Rule events as KissMetrics events.
+ *
+ * @author Farhad Hedayati Fard <hf.farhad@gmail.com>
+ */
+
+define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
+
+/**
+ * Implements hook_page_alter().
+ */
+function kissmetrics_page_alter() {
+  $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
+  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
+  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+  if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {
+    return;
+  }
+
+  if ($visibility_mode == 1 && !drupal_match_path($path, $pages)) {
+    return;
+  }
+
+  $path = libraries_get_path('kissmetrics');
+  if ($path && is_string($path) && file_exists($path . '/km.php')) {
+    require_once $path . '/km.php';
+  }
+  else {
+    drupal_set_message(t('KISSmetrics library is not installed.'), 'warning');
+    return;
+  }
+  $api_key = variable_get('kissmetrics_api_key');
+  if (!$api_key) {
+    drupal_set_message(t('Please configure KISSmetrics.'), 'warning');
+    return;
+  }
+  $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+  $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
+  KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+  global $user;
+  if ($user->uid) {
+    KM::identify($user->mail);
+    KM::alias($user->name, $user->mail);
+    drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
+  }
+  else {
+    KM::identify('Anonymous');
+    drupal_add_js(array('kissmetrics' => array('identity' => 'Anonymous')), 'setting');
+  }
+
+  $script  = "var _kmq = _kmq || [];";
+  $script .= "var _kmk = _kmk || '" . $api_key . "';";
+  $script .= "function _kms(u){" ;
+  $script .= "setTimeout(function(){";
+  $script .= "var d = document, f = d.getElementsByTagName('script')[0],";
+  $script .= "s = d.createElement('script');";
+  $script .= "s.type = 'text/javascript'; s.async = true; s.src = u;";
+  $script .= "f.parentNode.insertBefore(s, f);";
+  $script .= "}, 1); }";
+  $script .= "_kms('//i.kissmetrics.com/i.js');";
+  $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
+
+  drupal_add_js($script, array('type' => 'inline', 'scope' => 'header'));
+  drupal_add_js(drupal_get_path('module', 'kissmetrics') . '/js/kissmetrics.js', array('scope' => 'footer'));
+}
+
+/**
+ * Implements hook_menu().
+ */
+function kissmetrics_menu() {
+  $items = array();
+
+  $items['admin/config/services/kissmetrics'] = array(
+    'title' => 'KISSmetrics',
+    'description' => 'Configure KISSmetrics',
+    'access arguments' => array('configure kissmetrics'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('kissmetrics_configuration_form'),
+    'file' => 'includes/kissmetrics.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function kissmetrics_permission() {
+  return array(
+    'configure kissmetrics' =>  array(
+      'title' => t('Configure KISSmetrics'),
+    ),
+  );
+}
+
+
+/**
+ * Records an event for KISSmetrics.
+ * @param string $event
+ *   Name of the event to be logged.
+ * @param string|array $props
+ *   An string or array containing properties of the event.
+ *   String values ne to have one parameter per line in key|value format.
+ *   Array examle:
+ *   array (
+ *     'key1' => 'value1',
+ *     'key2' => 'value2',
+ *     'key3' => 'valye3',
+ *   )
+ *   String example:
+ *   "key1|value1\nkey2|value2\nkey3|value3"
+ */
+function kissmetrics_log_event($event, $props) {
+  if (!class_exists('KM')) {
+    return;
+  }
+
+  $properties = array();
+  if (is_string($props)) {
+    $properties = kissmetrics_generate_prop_array($props);
+  }
+  elseif (is_array($props)) {
+    $properties = $props;
+  }
+  if (is_array($properties)) {
+    KM::record($event, $properties);
+  }
+}
+
+/**
+ * Sets properties on the identified user.
+ * @param string|array $props
+ *   An string or array containing properties of the event.
+ *   String values ne to have one parameter per line in key|value format.
+ *   Array examle:
+ *   array (
+ *     'key1' => 'value1',
+ *     'key2' => 'value2',
+ *     'key3' => 'valye3',
+ *   )
+ *   String example:
+ *   "key1|value1\nkey2|value2\nkey3|value3"
+ */
+function kissmetrics_set_property($props) {
+  if (!class_exists('KM')) {
+    return;
+  }
+
+  $properties = array();
+  if (is_string($props)) {
+    $properties = kissmetrics_generate_prop_array($props);
+  }
+  elseif (is_array($props)) {
+    $properties = $props;
+  }
+  if (is_array($properties) && !empty($properties)) {
+    KM::set($properties);
+  }
+}
+
+/**
+ * Generate the properties array from the string entered by the user.
+ * @return array
+ */
+function kissmetrics_generate_prop_array(string $str) {
+  $properties = array();
+  $lines = explode("\n", $str);
+  foreach ($lines as $line) {
+    list($key, $value) = explode('|', $line);
+    if ($key) {
+      $properties[$key] = $value;
+    }
+  }
+  return $properties;
+}
