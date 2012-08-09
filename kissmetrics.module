@@ -112,6 +112,11 @@ function kissmetrics_permission() {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_log_event($event, $props) {
+  $path = libraries_get_path('kissmetrics');
+  if ($path && is_string($path) && file_exists($path . '/km.php')) {
+    require_once $path . '/km.php';
+  }
+
   if (!class_exists('KM')) {
     return;
   }
@@ -143,6 +148,11 @@ function kissmetrics_log_event($event, $props) {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_set_property($props) {
+  $path = libraries_get_path('kissmetrics');
+  if ($path && is_string($path) && file_exists($path . '/km.php')) {
+    require_once $path . '/km.php';
+  }
+
   if (!class_exists('KM')) {
     return;
   }
@@ -163,7 +173,10 @@ function kissmetrics_set_property($props) {
  * Generate the properties array from the string entered by the user.
  * @return array
  */
-function kissmetrics_generate_prop_array(string $str) {
+function kissmetrics_generate_prop_array($str) {
+  if (!is_string($str)) {
+    return NULL;
+  }
   $properties = array();
   $lines = explode("\n", $str);
   foreach ($lines as $line) {
