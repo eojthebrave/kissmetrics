@@ -15,6 +15,7 @@ function kissmetrics_page_alter() {
   if (!class_exists('KM')) {
     return;
   }
+  $api_key = variable_get('kissmetrics_api_key');
   $script  = "var _kmq = _kmq || [];";
   $script .= "var _kmk = _kmk || '" . $api_key . "';";
   $script .= "function _kms(u){" ;
