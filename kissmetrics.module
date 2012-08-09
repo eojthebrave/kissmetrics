@@ -11,44 +11,10 @@ define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/
  * Implements hook_page_alter().
  */
 function kissmetrics_page_alter() {
-  $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
-  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
-  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
-  if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {
+  kissmetrics_setup_library();
+  if (!class_exists('KM')) {
     return;
   }
-
-  if ($visibility_mode == 1 && !drupal_match_path($path, $pages)) {
-    return;
-  }
-
-  $path = libraries_get_path('kissmetrics');
-  if ($path && is_string($path) && file_exists($path . '/km.php')) {
-    require_once $path . '/km.php';
-  }
-  else {
-    drupal_set_message(t('KISSmetrics library is not installed.'), 'warning');
-    return;
-  }
-  $api_key = variable_get('kissmetrics_api_key');
-  if (!$api_key) {
-    drupal_set_message(t('Please configure KISSmetrics.'), 'warning');
-    return;
-  }
-  $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-  $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
-  KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-  global $user;
-  if ($user->uid) {
-    KM::identify($user->mail);
-    KM::alias($user->name, $user->mail);
-    drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
-  }
-  else {
-    KM::identify('Anonymous');
-    drupal_add_js(array('kissmetrics' => array('identity' => 'Anonymous')), 'setting');
-  }
-
   $script  = "var _kmq = _kmq || [];";
   $script .= "var _kmk = _kmk || '" . $api_key . "';";
   $script .= "function _kms(u){" ;
@@ -117,6 +83,7 @@ function kissmetrics_log_event($event, $props) {
     require_once $path . '/km.php';
   }
 
+  kissmetrics_setup_library();
   if (!class_exists('KM')) {
     return;
   }
@@ -153,6 +120,7 @@ function kissmetrics_set_property($props) {
     require_once $path . '/km.php';
   }
 
+  kissmetrics_setup_library();
   if (!class_exists('KM')) {
     return;
   }
@@ -186,4 +154,51 @@ function kissmetrics_generate_prop_array($str) {
     }
   }
   return $properties;
+}
+
+/**
+ * Load and initialize KM class.
+ */
+function kissmetrics_setup_library() {
+  if (class_exists('KM')) {
+    return;
+  }
+
+  $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
+  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
+  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+  if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {
+    return;
+  }
+
+  if ($visibility_mode == 1 && !drupal_match_path($path, $pages)) {
+    return;
+  }
+
+  $path = libraries_get_path('kissmetrics');
+  if ($path && is_string($path) && file_exists($path . '/km.php')) {
+    require_once $path . '/km.php';
+  }
+  else {
+    drupal_set_message(t('KISSmetrics library is not installed.'), 'warning');
+    return;
+  }
+  $api_key = variable_get('kissmetrics_api_key');
+  if (!$api_key) {
+    drupal_set_message(t('Please configure KISSmetrics.'), 'warning');
+    return;
+  }
+  $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+  $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
+  KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+  global $user;
+  if ($user->uid) {
+    KM::identify($user->mail);
+    KM::alias($user->name, $user->mail);
+    drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
+  }
+  else {
+    KM::identify('Anonymous');
+    drupal_add_js(array('kissmetrics' => array('identity' => 'Anonymous')), 'setting');
+  }
 }
