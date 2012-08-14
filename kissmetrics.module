@@ -79,11 +79,6 @@ function kissmetrics_permission() {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_log_event($event, $props) {
-  $path = libraries_get_path('kissmetrics');
-  if ($path && is_string($path) && file_exists($path . '/km.php')) {
-    require_once $path . '/km.php';
-  }
-
   kissmetrics_setup_library();
   if (!class_exists('KM')) {
     return;
@@ -116,11 +111,6 @@ function kissmetrics_log_event($event, $props) {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_set_property($props) {
-  $path = libraries_get_path('kissmetrics');
-  if ($path && is_string($path) && file_exists($path . '/km.php')) {
-    require_once $path . '/km.php';
-  }
-
   kissmetrics_setup_library();
   if (!class_exists('KM')) {
     return;
