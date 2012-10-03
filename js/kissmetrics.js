@@ -1,3 +1,5 @@
 (function() {
-  _kmq.push(['identify', Drupal.settings.kissmetrics.identity]);
+  if (typeof Drupal.settings.kissmetrics != 'undefined') {
+    _kmq.push(['identify', Drupal.settings.kissmetrics.identity]);
+  }
 })();
