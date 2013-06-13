@@ -186,10 +186,14 @@ function kissmetrics_setup_library() {
   if ($user->uid) {
     KM::identify($user->mail);
     KM::alias($user->name, $user->mail);
+    if (isset($_COOKIE['km_ai'])) {
+      KM::alias($_COOKIE['km_ai'], $user->mail);
+    }
     drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
   }
   else {
-    KM::identify('Anonymous');
-    drupal_add_js(array('kissmetrics' => array('identity' => 'Anonymous')), 'setting');
+    $random = md5(rand());
+    KM::identify($random);
+    drupal_add_js(array('kissmetrics' => array('identity' => $random)), 'setting');
   }
 }
