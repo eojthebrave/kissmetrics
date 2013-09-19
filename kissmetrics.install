@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the KISSmetrics module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function kissmetrics_uninstall() {
+  // Remove configuration variables.
+  variable_del('kissmetrics_api_key');
+  variable_del('kissmetrics_use_cron');
+  variable_del('kissmetrics_log_dir');
+  variable_del('kissmetrics_visibility_mode');
+  variable_del('kissmetrics_visibility_pages');
+}
