@@ -15,7 +15,7 @@ function kissmetrics_configuration_form($form, &$form_state) {
     '#type' => 'fieldset',
     '#title' => t('API Information'),
   );
-  $form['api_information']['api_key'] = array(
+  $form['api_information']['kissmetrics_api_key'] = array(
     '#title' => t('API Key'),
     '#type' => 'textfield',
     '#default_value' => variable_get('kissmetrics_api_key'),
@@ -25,13 +25,13 @@ function kissmetrics_configuration_form($form, &$form_state) {
     '#type' => 'fieldset',
     '#title' => t('Settings'),
   );
-  $form['settings']['use_cron'] = array(
+  $form['settings']['kissmetrics_use_cron'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use Cron'),
     '#description' => t('Use Cron for sending data to KISSmetrics. Highly recommended.'),
     '#default_value' => variable_get('kissmetrics_use_cron', TRUE),
   );
-  $form['settings']['log_dir'] = array(
+  $form['settings']['kissmetrics_log_dir'] = array(
     '#type' => 'textfield',
     '#title' => t('Log directory'),
     '#default_value' => variable_get('kissmetrics_log_dir', '/tmp'),
@@ -44,7 +44,7 @@ function kissmetrics_configuration_form($form, &$form_state) {
     '#collapsed' => TRUE,
   );
   $description = t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>'));
-  $form['settings']['pages']['visibility_mode'] = array(
+  $form['settings']['pages']['kissmetrics_visibility_mode'] = array(
     '#type' => 'radios',
     '#title' => t('Add tracking to specific pages'),
     '#options' => array(
@@ -53,40 +53,25 @@ function kissmetrics_configuration_form($form, &$form_state) {
     ),
     '#default_value' => variable_get('kissmetrics_visibility_mode', 0),
   );
-  $form['settings']['pages']['kissmetrics_pages'] = array(
+  $form['settings']['pages']['kissmetrics_visibility_pages'] = array(
     '#type' => 'textarea',
     '#title' => t('Pages'),
     '#description' => $description,
     '#default_value' => variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES),
   );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Submit'),
-  );
 
-  return $form;
+  return system_settings_form($form);
 }
 
 /**
  * Config form validation callback.
  */
 function kissmetrics_configuration_form_validate($form, &$form_state) {
-  $form_state['values']['kissmetrics_pages'] = trim($form_state['values']['kissmetrics_pages']);
-  if (!file_exists($form_state['values']['log_dir'])) {
-    form_set_error('log_dir', t('The specified directory does not exist.'));
+  $form_state['values']['kissmetrics_visibility_pages'] = trim($form_state['values']['kissmetrics_visibility_pages']);
+  if (!file_exists($form_state['values']['kissmetrics_log_dir'])) {
+    form_set_error('kissmetrics_log_dir', t('The specified directory does not exist.'));
   }
-  if (!is_writeable($form_state['values']['log_dir'])) {
-    form_set_error('log_dir', t('The specified directory is not writable.'));
+  if (!is_writeable($form_state['values']['kissmetrics_log_dir'])) {
+    form_set_error('kissmetrics_log_dir', t('The specified directory is not writable.'));
   }
-}
-
-/**
- * Config form submit callback.
- */
-function kissmetrics_configuration_form_submit($form, &$form_state) {
-  variable_set('kissmetrics_api_key', $form_state['values']['api_key']);
-  variable_set('kissmetrics_visibility_pages', $form_state['values']['kissmetrics_pages']);
-  variable_set('kissmetrics_use_cron', $form_state['values']['use_cron']);
-  variable_set('kissmetrics_visibility_mode', $form_state['values']['visibility_mode']);
-  variable_set('kissmetrics_log_dir', $form_state['values']['log_dir']);
 }
