@@ -8,9 +8,9 @@
 define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 
 /**
- * Implements hook_page_alter().
+ * Implements hook_page_build().
  */
-function kissmetrics_page_alter() {
+function kissmetrics_page_build(&$page) {
   kissmetrics_setup_library();
   if (!class_exists('KM')) {
     return;
@@ -28,8 +28,18 @@ function kissmetrics_page_alter() {
   $script .= "_kms('//i.kissmetrics.com/i.js');";
   $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
 
-  drupal_add_js($script, array('type' => 'inline', 'scope' => 'header'));
-  drupal_add_js(drupal_get_path('module', 'kissmetrics') . '/js/kissmetrics.js', array('scope' => 'footer'));
+  $page['page_top']['#attached']['js'] = array(
+    $script => array(
+      'type' => 'inline',
+      'scope' => 'header'
+    ),
+  );
+  $page['page_bottom']['#attached']['js'] = array(
+    drupal_get_path('module', 'kissmetrics') . '/js/kissmetrics.js' => array(
+      'type' => 'file',
+      'scope' => 'footer'
+    ),
+  );
 }
 
 /**
