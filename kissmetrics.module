@@ -54,7 +54,7 @@ function kissmetrics_menu() {
     'access arguments' => array('configure kissmetrics'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('kissmetrics_configuration_form'),
-    'file' => 'includes/kissmetrics.admin.inc',
+    'file' => 'kissmetrics.admin.inc',
   );
 
   return $items;
