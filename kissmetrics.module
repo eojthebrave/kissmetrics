@@ -8,6 +8,66 @@
 define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 
 /**
+ * Implements hook_permission().
+ */
+function kissmetrics_permission() {
+  return array(
+    'configure kissmetrics' =>  array(
+      'title' => t('Configure KISSmetrics'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function kissmetrics_menu() {
+  $items = array();
+
+  $items['admin/config/services/kissmetrics'] = array(
+    'title' => 'KISSmetrics',
+    'description' => 'Configure KISSmetrics',
+    'access arguments' => array('configure kissmetrics'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('kissmetrics_configuration_form'),
+    'file' => 'kissmetrics.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_libraries_info().
+ */
+function kissmetrics_libraries_info() {
+  $libraries['kissmetrics'] = array(
+    'name' => 'KISSmetrics',
+    'vendor url' => 'http://www.kissmetrics.com',
+    'download url' => 'https://github.com/kissmetrics/KISSmetrics',
+    'version' => '0',
+    'files' => array(
+      'php' => array(
+        'km.php',
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_registry_files_alter().
+ */
+function kissmetrics_registry_files_alter(&$files, $modules) {
+  if (($library = libraries_detect('kissmetrics')) && !empty($library['installed'])) {
+    $files[$library['library path'] . '/km.php'] =  array(
+      'module' => 'kissmetrics',
+      'weight' => 0,
+    );
+  }
+}
+
+/**
  * Implements hook_page_build().
  */
 function kissmetrics_page_build(&$page) {
@@ -40,66 +100,6 @@ function kissmetrics_page_build(&$page) {
       'scope' => 'footer'
     ),
   );
-}
-
-/**
- * Implements hook_menu().
- */
-function kissmetrics_menu() {
-  $items = array();
-
-  $items['admin/config/services/kissmetrics'] = array(
-    'title' => 'KISSmetrics',
-    'description' => 'Configure KISSmetrics',
-    'access arguments' => array('configure kissmetrics'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('kissmetrics_configuration_form'),
-    'file' => 'kissmetrics.admin.inc',
-  );
-
-  return $items;
-}
-
-/**
- * Implements hook_permission().
- */
-function kissmetrics_permission() {
-  return array(
-    'configure kissmetrics' =>  array(
-      'title' => t('Configure KISSmetrics'),
-    ),
-  );
-}
-
-/**
- * Implements hook_libraries_info().
- */
-function kissmetrics_libraries_info() {
-  $libraries['kissmetrics'] = array(
-    'name' => 'KISSmetrics',
-    'vendor url' => 'http://www.kissmetrics.com',
-    'download url' => 'https://github.com/kissmetrics/KISSmetrics',
-    'version' => '0',
-    'files' => array(
-      'php' => array(
-        'km.php',
-      ),
-    ),
-  );
-
-  return $libraries;
-}
-
-/**
- * Implements hook_registry_files_alter().
- */
-function kissmetrics_registry_files_alter(&$files, $modules) {
-  if (($library = libraries_detect('kissmetrics')) && !empty($library['installed'])) {
-    $files[$library['library path'] . '/km.php'] =  array(
-      'module' => 'kissmetrics',
-      'weight' => 0,
-    );
-  }
 }
 
 /**
