@@ -206,31 +206,28 @@ function kissmetrics_setup_library() {
     return;
   }
 
-  $api_key = variable_get('kissmetrics_api_key');
-  if (!$api_key) {
-    drupal_set_message(t('Please configure KISSmetrics.'), 'warning');
-    return;
-  }
-  $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-  $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
-  KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-  global $user;
-  if ($user->uid) {
-    KM::identify($user->mail);
-    KM::alias($user->name, $user->mail);
-    if (isset($_COOKIE['km_ai'])) {
-      KM::alias($_COOKIE['km_ai'], $user->mail);
-    }
-    drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
-  }
-  else {
-    if (isset($_COOKIE['km_ai'])) {
-      $random = $_COOKIE['km_ai'];
+  if ($api_key = variable_get('kissmetrics_api_key')) {
+    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
+    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+    global $user;
+    if ($user->uid) {
+      KM::identify($user->mail);
+      KM::alias($user->name, $user->mail);
+      if (isset($_COOKIE['km_ai'])) {
+        KM::alias($_COOKIE['km_ai'], $user->mail);
+      }
+      drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
     }
     else {
-      $random = md5(rand());
+      if (isset($_COOKIE['km_ai'])) {
+        $random = $_COOKIE['km_ai'];
+      }
+      else {
+        $random = md5(rand());
+      }
+      KM::identify($random);
+      drupal_add_js(array('kissmetrics' => array('identity' => $random)), 'setting');
     }
-    KM::identify($random);
-    drupal_add_js(array('kissmetrics' => array('identity' => $random)), 'setting');
   }
 }

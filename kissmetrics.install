@@ -6,6 +6,51 @@
  */
 
 /**
+ * Implements hook_requirements().
+ */
+function kissmetrics_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+
+  if ($phase == 'runtime') {
+    // Check if the KISSmetrics PHP library is installed.
+    if (($library = libraries_detect('kissmetrics')) && !empty($library['installed'])) {
+      $requirements['kissmetrics_library'] = array(
+        'title' => $t('KISSmetrics PHP library'),
+        'value' => $t('Installed'),
+        'severity' => REQUIREMENT_OK,
+      );
+    }
+    else {
+      $requirements['kissmetrics_library'] = array(
+        'title' => $t('KISSmetrics PHP library'),
+        'value' => $t('Not installed'),
+        'description' => $library['error message'],
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    // Check if a KISSmetrics API key has been set.
+    if (variable_get('kissmetrics_api_key')) {
+      $requirements['kissmetrics_api_key'] = array(
+        'title' => $t('KISSmetrics API key'),
+        'value' => $t('Set'),
+        'severity' => REQUIREMENT_OK,
+      );
+    }
+    else {
+      $requirements['kissmetrics_api_key'] = array(
+        'title' => $t('KISSmetrics API key'),
+        'value' => $t('Not set'),
+        'description' => $t('A KISSmetrics API key has not been set. You must <a href="@url">add an API key</a> before data can be sent to KISSmetrics.', array('@url' => 'admin/config/services/kissmetrics')),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+
+  return $requirements;
+}
+
+/**
  * Implements hook_uninstall().
  */
 function kissmetrics_uninstall() {
