@@ -61,6 +61,36 @@ function kissmetrics_permission() {
   );
 }
 
+/**
+ * Implements hook_libraries_info().
+ */
+function kissmetrics_libraries_info() {
+  $libraries['kissmetrics'] = array(
+    'name' => 'KISSmetrics',
+    'vendor url' => 'http://www.kissmetrics.com',
+    'download url' => 'https://github.com/kissmetrics/KISSmetrics',
+    'version' => '0',
+    'files' => array(
+      'php' => array(
+        'km.php',
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_registry_files_alter().
+ */
+function kissmetrics_registry_files_alter(&$files, $modules) {
+  if (($library = libraries_detect('kissmetrics')) && !empty($library['installed'])) {
+    $files[$library['library path'] . '/km.php'] =  array(
+      'module' => 'kissmetrics',
+      'weight' => 0,
+    );
+  }
+}
 
 /**
  * Records an event for KISSmetrics.
@@ -166,14 +196,6 @@ function kissmetrics_setup_library() {
     return;
   }
 
-  $path = libraries_get_path('kissmetrics');
-  if ($path && is_string($path) && file_exists($path . '/km.php')) {
-    require_once $path . '/km.php';
-  }
-  else {
-    drupal_set_message(t('KISSmetrics library is not installed.'), 'warning');
-    return;
-  }
   $api_key = variable_get('kissmetrics_api_key');
   if (!$api_key) {
     drupal_set_message(t('Please configure KISSmetrics.'), 'warning');
