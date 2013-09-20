@@ -41,7 +41,7 @@ function kissmetrics_requirements($phase) {
       $requirements['kissmetrics_api_key'] = array(
         'title' => $t('KISSmetrics API key'),
         'value' => $t('Not set'),
-        'description' => $t('A KISSmetrics API key has not been set. You must <a href="@url">add an API key</a> before data can be sent to KISSmetrics.', array('@url' => 'admin/config/services/kissmetrics')),
+        'description' => $t('A KISSmetrics API key has not been set. You must <a href="@url">add an API key</a> before data can be sent to KISSmetrics.', array('@url' => url('admin/config/services/kissmetrics', array('query' => drupal_get_destination())))),
         'severity' => REQUIREMENT_ERROR,
       );
     }
