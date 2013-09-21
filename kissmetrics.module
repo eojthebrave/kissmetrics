@@ -71,35 +71,48 @@ function kissmetrics_registry_files_alter(&$files, $modules) {
  * Implements hook_page_build().
  */
 function kissmetrics_page_build(&$page) {
-  kissmetrics_setup_library();
-  if (!class_exists('KM')) {
+  $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
+  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
+  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+
+  if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {
     return;
   }
-  $api_key = variable_get('kissmetrics_api_key');
-  $script  = "var _kmq = _kmq || [];";
-  $script .= "var _kmk = _kmk || '" . $api_key . "';";
-  $script .= "function _kms(u){" ;
-  $script .= "setTimeout(function(){";
-  $script .= "var d = document, f = d.getElementsByTagName('script')[0],";
-  $script .= "s = d.createElement('script');";
-  $script .= "s.type = 'text/javascript'; s.async = true; s.src = u;";
-  $script .= "f.parentNode.insertBefore(s, f);";
-  $script .= "}, 1); }";
-  $script .= "_kms('//i.kissmetrics.com/i.js');";
-  $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
 
-  $page['page_top']['#attached']['js'] = array(
-    $script => array(
-      'type' => 'inline',
-      'scope' => 'header'
-    ),
-  );
-  $page['page_bottom']['#attached']['js'] = array(
-    drupal_get_path('module', 'kissmetrics') . '/js/kissmetrics.js' => array(
-      'type' => 'file',
-      'scope' => 'footer'
-    ),
-  );
+  if ($visibility_mode == 1 && !drupal_match_path($path, $pages)) {
+    return;
+  }
+
+  if ($api_key = variable_get('kissmetrics_api_key')) {
+    // Include the KISSmetrics JavaScript library.
+    $script  = "var _kmq = _kmq || [];";
+    $script .= "var _kmk = _kmk || '" . $api_key . "';";
+    $script .= "function _kms(u){" ;
+    $script .= "setTimeout(function(){";
+    $script .= "var d = document, f = d.getElementsByTagName('script')[0],";
+    $script .= "s = d.createElement('script');";
+    $script .= "s.type = 'text/javascript'; s.async = true; s.src = u;";
+    $script .= "f.parentNode.insertBefore(s, f);";
+    $script .= "}, 1); }";
+    $script .= "_kms('//i.kissmetrics.com/i.js');";
+    $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
+
+    // Identify the current user.
+    $id = kissmetrics_user_id();
+
+    $script .= "_kmq.push(['identify', '" . $id . "']);";
+
+    foreach (kissmetrics_user_aliases() as $alias) {
+      $script .= "_kmq.push(['alias', " . $id . ", '" . $alias . "' ]);";
+    }
+
+    $page['page_top']['#attached']['js'] = array(
+      $script => array(
+        'type' => 'inline',
+        'scope' => 'header'
+      ),
+    );
+  }
 }
 
 /**
@@ -119,20 +132,32 @@ function kissmetrics_page_build(&$page) {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_log_event($event, $props) {
-  kissmetrics_setup_library();
-  if (!class_exists('KM')) {
-    return;
-  }
+  if ($api_key = variable_get('kissmetrics_api_key')) {
+    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
 
-  $properties = array();
-  if (is_string($props)) {
-    $properties = kissmetrics_generate_prop_array($props);
-  }
-  elseif (is_array($props)) {
-    $properties = $props;
-  }
-  if (is_array($properties)) {
-    KM::record($event, $properties);
+    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+
+    // Identify the current user.
+    $id = kissmetrics_user_id();
+
+    KM::identify($id);
+
+    foreach (kissmetrics_user_aliases() as $alias) {
+      KM::alias($id, $alias);
+    }
+
+    $properties = array();
+
+    if (is_string($props)) {
+      $properties = kissmetrics_generate_prop_array($props);
+    }
+    elseif (is_array($props)) {
+      $properties = $props;
+    }
+    if (is_array($properties)) {
+      KM::record($event, $properties);
+    }
   }
 }
 
@@ -151,20 +176,32 @@ function kissmetrics_log_event($event, $props) {
  *   "key1|value1\nkey2|value2\nkey3|value3"
  */
 function kissmetrics_set_property($props) {
-  kissmetrics_setup_library();
-  if (!class_exists('KM')) {
-    return;
-  }
+  if ($api_key = variable_get('kissmetrics_api_key')) {
+    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
 
-  $properties = array();
-  if (is_string($props)) {
-    $properties = kissmetrics_generate_prop_array($props);
-  }
-  elseif (is_array($props)) {
-    $properties = $props;
-  }
-  if (is_array($properties) && !empty($properties)) {
-    KM::set($properties);
+    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+
+    // Identify the current user.
+    $id = kissmetrics_user_id();
+
+    KM::identify($id);
+
+    foreach (kissmetrics_user_aliases() as $alias) {
+      KM::alias($id, $alias);
+    }
+
+    $properties = array();
+
+    if (is_string($props)) {
+      $properties = kissmetrics_generate_prop_array($props);
+    }
+    elseif (is_array($props)) {
+      $properties = $props;
+    }
+    if (is_array($properties) && !empty($properties)) {
+      KM::set($properties);
+    }
   }
 }
 
@@ -188,46 +225,46 @@ function kissmetrics_generate_prop_array($str) {
 }
 
 /**
- * Load and initialize KM class.
+ * Determines an appropriate ID for the current user.
+ *
+ * @return int|string
+ *   An ID representing the user.
  */
-function kissmetrics_setup_library() {
-  if (class_exists('KM')) {
-    return;
+function kissmetrics_user_id() {
+  global $user;
+
+  if (user_is_logged_in()) {
+    $id = $user->uid;
+  }
+  elseif (module_exists('session_api'))  {
+    $id = session_api_get_sid();
+  }
+  else {
+    $id = NULL;
+    $data = array(rand(), time());
+    $data = implode('|', $data);
+    $data = base64_encode($data);
+    $id = sha1($data);
   }
 
-  $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
-  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
-  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
-  if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {
-    return;
+  return $id;
+}
+
+/**
+ * Determines any appropriate aliases for the current user.
+ *
+ * @return array
+ *   An array of aliases.
+ */
+function kissmetrics_user_aliases() {
+  global $user;
+
+  $aliases = array();
+
+  if (user_is_logged_in()) {
+    $aliases[] = $user->mail;
+    $aliases[] = $user->name;
   }
 
-  if ($visibility_mode == 1 && !drupal_match_path($path, $pages)) {
-    return;
-  }
-
-  if ($api_key = variable_get('kissmetrics_api_key')) {
-    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
-    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-    global $user;
-    if ($user->uid) {
-      KM::identify($user->mail);
-      KM::alias($user->name, $user->mail);
-      if (isset($_COOKIE['km_ai'])) {
-        KM::alias($_COOKIE['km_ai'], $user->mail);
-      }
-      drupal_add_js(array('kissmetrics' => array('identity' => $user->mail)), 'setting');
-    }
-    else {
-      if (isset($_COOKIE['km_ai'])) {
-        $random = $_COOKIE['km_ai'];
-      }
-      else {
-        $random = md5(rand());
-      }
-      KM::identify($random);
-      drupal_add_js(array('kissmetrics' => array('identity' => $random)), 'setting');
-    }
-  }
+  return $aliases;
 }
