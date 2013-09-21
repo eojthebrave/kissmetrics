@@ -252,11 +252,10 @@ function kissmetrics_user_id() {
     $id = session_api_get_sid();
   }
   else {
-    $id = NULL;
-    $data = array(rand(), time());
-    $data = implode('|', $data);
-    $data = base64_encode($data);
-    $id = sha1($data);
+    $id = array(rand(), time());
+    $id = implode('|', $id);
+    $id = base64_encode($id);
+    $id = sha1($id);
   }
 
   return $id;
