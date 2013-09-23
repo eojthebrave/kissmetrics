@@ -72,7 +72,7 @@ function kissmetrics_registry_files_alter(&$files, $modules) {
  */
 function kissmetrics_cron() {
   if ($api_key = variable_get('kissmetrics_api_key')) {
-    if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = variable_get('kissmetrics_log_dir', '/tmp/')) {
+    if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
       KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
       KM::send_logged_queries();
     }
@@ -146,7 +146,7 @@ function kissmetrics_page_build(&$page) {
 function kissmetrics_log_event($event, $props) {
   if ($api_key = variable_get('kissmetrics_api_key')) {
     $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
+    $log_dir = kissmetrics_get_directory();
 
     KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
 
@@ -190,7 +190,7 @@ function kissmetrics_log_event($event, $props) {
 function kissmetrics_set_property($props) {
   if ($api_key = variable_get('kissmetrics_api_key')) {
     $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-    $log_dir = variable_get('kissmetrics_log_dir', '/tmp/');
+    $log_dir = kissmetrics_get_directory();
 
     KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
 
@@ -278,4 +278,88 @@ function kissmetrics_user_aliases() {
   }
 
   return $aliases;
+}
+
+/**
+ * Constructs a URI to the request log directory.
+ *
+ * @param string $directory
+ *   Optional string specifying the filepath or URI of a directory to get.
+ *
+ * @return string
+ *   A URI to the directory inside of Drupal's default files location.
+ */
+function kissmetrics_get_directory($directory = NULL) {
+  $path = &drupal_static(__FUNCTION__);
+
+  if (!isset($path)) {
+    $path = variable_get('kissmetrics_log_dir', 'kissmetrics');
+  }
+
+  if (!empty($directory)) {
+    return file_build_uri($directory);
+  }
+  else {
+    return file_build_uri($path);
+  }
+}
+
+/**
+ * Check that the request log directory exists and is writable.
+ *
+ * @param string $directory
+ *   Optional string specifying the filepath or URI of a directory to check.
+ *
+ * @return boolean
+ *   TRUE if the directory exists (or was created) and is writable. FALSE
+ *   otherwise.
+ */
+function kissmetrics_check_directory($directory = NULL) {
+  $directory = kissmetrics_get_directory($directory);
+  $result = file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+  if (!$result) {
+    watchdog('file system', 'The directory %directory does not exist or is not writable.', array('%directory' => $directory), WATCHDOG_ERROR);
+  }
+  return $result;
+}
+
+/**
+ * Recursively delete all files and folders in the request log directory.
+ */
+function kissmetrics_clear_directory() {
+  $directory = kissmetrics_get_directory();
+  return file_unmanaged_delete_recursive($directory);
+}
+
+/**
+ * Move a directory to a new location.
+ *
+ * @param string $old_dir
+ *   A string specifying the filepath or URI of the original directory.
+ * @param string $new_dir
+ *   A string specifying the filepath or URI of the new directory.
+ * @param int $replace
+ *   Replace behavior when the destination file already exists.
+ *
+ * @return boolean
+ *   TRUE if the directory was moved successfully. FALSE otherwise.
+ */
+function kissmetrics_directory_move($old_dir, $new_dir, $replace = FILE_EXISTS_REPLACE) {
+  $success = file_prepare_directory($new_dir, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+
+  $old_path = drupal_realpath($old_dir);
+  $new_path = drupal_realpath($new_dir);
+  if (!is_dir($old_path) || !is_dir($new_path) || !$success) {
+    return FALSE;
+  }
+
+  $files = file_scan_directory($old_dir, '/.*/');
+  foreach ($files as $file) {
+    $file->uri_new = $new_dir . '/' . basename($file->filename);
+    $success &= (bool) file_unmanaged_move($file->uri, $file->uri_new, $replace);
+  }
+
+  // Remove the old directory.
+  $success &= drupal_rmdir($old_dir);
+  return $success;
 }
