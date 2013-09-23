@@ -5,7 +5,20 @@
  * This module allows you to log Rule events as KissMetrics events.
  */
 
+/**
+ * Remove tracking from all administrative pages, see http://drupal.org/node/34970.
+ */
 define('KISSMETRICS_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
+
+/**
+ * Load KISSmetrics on every page except the listed pages.
+ */
+define('KISSMETRICS_VISIBILITY_NOTLISTED', 0);
+
+/**
+ * Load KISSmetrics on only the listed pages.
+ */
+define('KISSMETRICS_VISIBILITY_LISTED', 1);
 
 /**
  * Implements hook_permission().
@@ -84,7 +97,7 @@ function kissmetrics_cron() {
  */
 function kissmetrics_page_build(&$page) {
   $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
-  $visibility_mode = variable_get('kissmetrics_visibility_mode', 0);
+  $visibility_mode = variable_get('kissmetrics_visibility_mode', KISSMETRICS_VISIBILITY_NOTLISTED);
   $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
 
   if ($visibility_mode == 0 && drupal_match_path($path, $pages)) {

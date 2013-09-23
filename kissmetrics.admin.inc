@@ -9,32 +9,23 @@
  * Configuration form callback.
  */
 function kissmetrics_configuration_form($form, &$form_state) {
-  $form = array();
-
-  $form['api_information'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('API Information'),
-  );
-  $form['api_information']['kissmetrics_api_key'] = array(
+  $form['kissmetrics_api_key'] = array(
     '#title' => t('API Key'),
     '#type' => 'textfield',
     '#default_value' => variable_get('kissmetrics_api_key'),
     '#required' => TRUE,
+    '#description' => t('This ID is unique to each site you want to track separately. To get an API key, <a href="@kissmetrics">register your site with KISSmetrics</a>, or if you already have registered your site, go to your <a href="@settings">KISSmetrics Settings page</a>.', array('@kissmetrics' => 'http://www.kissmetrics.com', '@settings' => 'http://app.kissmetrics.com/settings')),
   );
-  $form['settings'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Settings'),
-  );
-  $form['settings']['kissmetrics_use_cron'] = array(
+  $form['kissmetrics_use_cron'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Use Cron'),
-    '#description' => t('Use Cron for sending data to KISSmetrics. Highly recommended.'),
+    '#title' => t('Process requests on cron'),
+    '#description' => t('Write all requests to a log for bulk processing during cron runs. When disabled, a request is made to the KISSmetrics tracking servers every time data is recorded. A large number of requests or a slow connection to the KISSmetrics servers could adversely affect site performance.'),
     '#default_value' => variable_get('kissmetrics_use_cron', TRUE),
   );
   if (!kissmetrics_check_directory()) {
     form_set_error('kissmetrics_log_dir', t('The directory %directory does not exist or is not writable.', array('%directory' => kissmetrics_get_directory())));
   }
-  $form['settings']['kissmetrics_log_dir'] = array(
+  $form['kissmetrics_log_dir'] = array(
     '#type' => 'textfield',
     '#title' => t('Request log directory'),
     '#default_value' => variable_get('kissmetrics_log_dir', 'kissmetrics'),
@@ -51,27 +42,42 @@ function kissmetrics_configuration_form($form, &$form_state) {
       ),
     ),
   );
-  $form['settings']['pages'] = array(
+
+  // Visibility settings.
+  $form['visibility_title'] = array(
+    '#type' => 'item',
+    '#title' => t('Visibility settings'),
+  );
+  $form['visibility'] = array(
+    '#type' => 'vertical_tabs',
+    '#attached' => array(
+      'js' => array(drupal_get_path('module', 'kissmetrics') . '/kissmetrics.js'),
+    ),
+  );
+
+  // Per-path visibility.
+  $form['visibility']['path'] = array(
     '#type' => 'fieldset',
     '#title' => t('Pages'),
-    '#description' => t('Specify the pages that KISSmetrics is enabled/disabled on them'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
+    '#group' => 'visibility',
+    '#weight' => 0,
   );
-  $description = t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>'));
-  $form['settings']['pages']['kissmetrics_visibility_mode'] = array(
+
+  $form['visibility']['path']['kissmetrics_visibility_mode'] = array(
     '#type' => 'radios',
     '#title' => t('Add tracking to specific pages'),
     '#options' => array(
-      t('Every page except the listed pages'),
-      t('The listed pages only'),
+      KISSMETRICS_VISIBILITY_NOTLISTED => t('All pages except those listed'),
+      KISSMETRICS_VISIBILITY_LISTED => t('Only the listed pages'),
     ),
-    '#default_value' => variable_get('kissmetrics_visibility_mode', 0),
+    '#default_value' => variable_get('kissmetrics_visibility_mode', KISSMETRICS_VISIBILITY_NOTLISTED),
   );
-  $form['settings']['pages']['kissmetrics_visibility_pages'] = array(
+  $form['visibility']['path']['kissmetrics_visibility_pages'] = array(
     '#type' => 'textarea',
     '#title' => t('Pages'),
-    '#description' => $description,
+    '#description' => t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>')),
     '#default_value' => variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES),
   );
 
