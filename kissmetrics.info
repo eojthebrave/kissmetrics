@@ -1,6 +1,7 @@
 name = KISSmetrics
-description = Adds the KISSmetrics web statistics tracking system to your website.
+description = Provides integration with the KISSmetrics person-based analytics service.
 core = 7.x
+package = Statistics
 dependencies[] = libraries (2.x)
 dependencies[] = rules
 configure = admin/config/services/kissmetrics
