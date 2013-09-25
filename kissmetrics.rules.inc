@@ -2,43 +2,31 @@
 
 /**
  * @file
- * Defines required Rules actions for KISSmetrics module.
+ * Defines Rules actions for the KISSmetrics module.
  */
 
 /**
  * Implements hook_rules_action_info().
  */
 function kissmetrics_rules_action_info() {
-  $actions = array(
-    'kissmetrics_log_event' => array(
-      'label' => t('Log a KISSmetrics event'),
+  return array(
+    'kissmetrics_record_event' => array(
+      'label' => t('Record a KISSmetrics event'),
       'group' => t('KISSmetrics'),
       'parameter' => array(
-        'event' => array(
+        'name' => array(
           'type' => 'text',
-          'label' => t('KISSmetrics Event'),
-          'required' => TRUE,
+          'label' => t('Name'),
+          'description' => t('The name of the event to record. If you do not enter a name, this action will set any specified properties on the identified person without recording an event.'),
+          'optional' => TRUE,
         ),
-        'props' => array(
-          'type' => 'text',
-          'label' => t('Parameters'),
-          'description' => t('Enter one parameter per line in key|value format.'),
-          'required' => TRUE,
-        ),
-      ),
-    ),
-    'kissmetrics_set_property' => array(
-      'label' => t('Set a property on the identified user'),
-      'group' => t('KISSmetrics'),
-      'parameter' => array(
-        'props' => array(
+        'properties' => array(
           'type' => 'text',
           'label' => t('Properties'),
-          'description' => t('Enter one parameter per line in key|value format.'),
-          'required' => TRUE,
+          'description' => t('An optional list of event properties. Enter one property per line in key|value format.'),
+          'optional' => TRUE,
         ),
       ),
     ),
   );
-  return $actions;
 }

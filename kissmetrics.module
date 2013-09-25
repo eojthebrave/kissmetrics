@@ -162,22 +162,21 @@ function kissmetrics_page_build(&$page) {
 }
 
 /**
- * Records an event for KISSmetrics.
- * @param string $event
- *   Name of the event to be logged.
- * @param string|array $props
- *   An string or array containing properties of the event.
- *   String values ne to have one parameter per line in key|value format.
- *   Array examle:
- *   array (
- *     'key1' => 'value1',
- *     'key2' => 'value2',
- *     'key3' => 'valye3',
- *   )
- *   String example:
- *   "key1|value1\nkey2|value2\nkey3|value3"
+ * Record a KISSmetrics event.
+ *
+ * @param string $name
+ *   The name of the event to record. If a name is not specified, any specified
+ *   properties will be set on the identified user.
+ * @param string|array $properties
+ *   A string or associative array containing properties of the event.
+ *   String values must be listed one per line in key|value format.
  */
-function kissmetrics_log_event($event, $props) {
+function kissmetrics_record_event($name = '', $properties = array()) {
+  // Only proceed if either a name or properties were specified.
+  if (empty($name) && empty($properties)) {
+    return;
+  }
+
   if ($api_key = variable_get('kissmetrics_api_key')) {
     $use_cron = variable_get('kissmetrics_use_cron', TRUE);
     $log_dir = kissmetrics_get_directory();
@@ -189,85 +188,55 @@ function kissmetrics_log_event($event, $props) {
 
     KM::identify($id);
 
+    // Gather all of the user's aliases.
     foreach (kissmetrics_user_aliases() as $alias) {
       KM::alias($id, $alias);
     }
 
-    $properties = array();
+    // Convert a string of event properties into an array.
+    if (is_string($properties)) {
+      $props = _kissmetrics_generate_prop_array($properties);
+    }
+    else {
+      $props = $properties;
+    }
 
-    if (is_string($props)) {
-      $properties = kissmetrics_generate_prop_array($props);
+    // Record an event if a name was specified, otherwise set properties on the
+    // identified user.
+    if (!empty($name)) {
+      KM::record($name, $props);
     }
-    elseif (is_array($props)) {
-      $properties = $props;
-    }
-    if (is_array($properties)) {
-      KM::record($event, $properties);
+    else {
+      KM::set($props);
     }
   }
 }
 
 /**
- * Sets properties on the identified user.
- * @param string|array $props
- *   An string or array containing properties of the event.
- *   String values ne to have one parameter per line in key|value format.
- *   Array examle:
- *   array (
- *     'key1' => 'value1',
- *     'key2' => 'value2',
- *     'key3' => 'valye3',
- *   )
- *   String example:
- *   "key1|value1\nkey2|value2\nkey3|value3"
- */
-function kissmetrics_set_property($props) {
-  if ($api_key = variable_get('kissmetrics_api_key')) {
-    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-    $log_dir = kissmetrics_get_directory();
-
-    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-
-    // Identify the current user.
-    $id = kissmetrics_user_id();
-
-    KM::identify($id);
-
-    foreach (kissmetrics_user_aliases() as $alias) {
-      KM::alias($id, $alias);
-    }
-
-    $properties = array();
-
-    if (is_string($props)) {
-      $properties = kissmetrics_generate_prop_array($props);
-    }
-    elseif (is_array($props)) {
-      $properties = $props;
-    }
-    if (is_array($properties) && !empty($properties)) {
-      KM::set($properties);
-    }
-  }
-}
-
-/**
- * Generate the properties array from the string entered by the user.
+ * Helper function to generate an array of properties from a string where each
+ * property is listed on a separate line and property keys and values are
+ * separated by a vertical bar.
+ *
+ * @param string $properties
+ *   A string of properties where each property is listed on a separate line and
+ *   property keys and values are separated by a vertical bar.
+ *
  * @return array
+ *   An array of properties.
  */
-function kissmetrics_generate_prop_array($str) {
-  if (!is_string($str)) {
-    return NULL;
-  }
-  $properties = array();
-  $lines = explode("\n", $str);
+function _kissmetrics_generate_prop_array($properties) {
+  $props = array();
+  $lines = explode("\n", $properties);
+
   foreach ($lines as $line) {
     list($key, $value) = explode('|', $line);
+
     if ($key) {
-      $properties[$key] = $value;
+      $props[$key] = $value;
     }
   }
-  return $properties;
+
+  return $props;
 }
 
 /**
