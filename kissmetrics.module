@@ -25,8 +25,9 @@ define('KISSMETRICS_VISIBILITY_LISTED', 1);
  */
 function kissmetrics_permission() {
   return array(
-    'configure kissmetrics' =>  array(
-      'title' => t('Configure KISSmetrics'),
+    'administer kissmetrics' =>  array(
+      'title' => t('Administer KISSmetrics'),
+      'description' => t('Allows a user to configure KISSmetrics.'),
     ),
   );
 }
@@ -40,7 +41,7 @@ function kissmetrics_menu() {
   $items['admin/config/services/kissmetrics'] = array(
     'title' => 'KISSmetrics',
     'description' => 'Configure KISSmetrics',
-    'access arguments' => array('configure kissmetrics'),
+    'access arguments' => array('administer kissmetrics'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('kissmetrics_configuration_form'),
     'file' => 'kissmetrics.admin.inc',
