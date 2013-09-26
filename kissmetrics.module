@@ -105,12 +105,7 @@ function kissmetrics_registry_files_alter(&$files, $modules) {
  * Implements hook_cron().
  */
 function kissmetrics_cron() {
-  if ($api_key = variable_get('kissmetrics_api_key')) {
-    if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
-      KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-      KM::send_logged_queries();
-    }
-  }
+  kissmetrics_send_logged_queries();
 }
 
 /**
@@ -281,6 +276,18 @@ function kissmetrics_user_aliases() {
   }
 
   return $aliases;
+}
+
+/**
+ * Send logged queries to KISSmetrics.
+ */
+function kissmetrics_send_logged_queries() {
+  if ($api_key = variable_get('kissmetrics_api_key')) {
+    if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
+      KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+      KM::send_logged_queries();
+    }
+  }
 }
 
 /**
