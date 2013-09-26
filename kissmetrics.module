@@ -2,7 +2,7 @@
 
 /**
  * @file
- * This module allows you to log Rule events as KissMetrics events.
+ * Provides integration with the KISSmetrics person-based analytics service.
  */
 
 /**
@@ -36,8 +36,6 @@ function kissmetrics_permission() {
  * Implements hook_menu().
  */
 function kissmetrics_menu() {
-  $items = array();
-
   $items['admin/config/services/kissmetrics'] = array(
     'title' => 'KISSmetrics',
     'description' => 'Configure KISSmetrics',
