@@ -218,6 +218,7 @@ function kissmetrics_record_event($name = '', $properties = array()) {
  *   An array of properties.
  */
 function _kissmetrics_generate_prop_array($properties) {
+  $properties = trim($properties);
   $props = array();
   $lines = explode("\n", $properties);
 
