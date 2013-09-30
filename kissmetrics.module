@@ -38,7 +38,7 @@ function kissmetrics_permission() {
 function kissmetrics_menu() {
   $items['admin/config/services/kissmetrics'] = array(
     'title' => 'KISSmetrics',
-    'description' => 'Configure KISSmetrics',
+    'description' => 'Configure an API key, logging behavior and page restrictions.',
     'access arguments' => array('administer kissmetrics'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('kissmetrics_configuration_form'),
