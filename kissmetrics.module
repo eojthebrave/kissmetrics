@@ -174,33 +174,38 @@ function kissmetrics_record_event($name = '', $properties = array()) {
     $use_cron = variable_get('kissmetrics_use_cron', TRUE);
     $log_dir = kissmetrics_get_directory();
 
-    KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+    if (class_exists('KM')) {
+      KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
 
-    // Identify the current user.
-    $id = kissmetrics_user_id();
+      // Identify the current user.
+      $id = kissmetrics_user_id();
 
-    KM::identify($id);
+      KM::identify($id);
 
-    // Gather all of the user's aliases.
-    foreach (kissmetrics_user_aliases() as $alias) {
-      KM::alias($id, $alias);
-    }
+      // Gather all of the user's aliases.
+      foreach (kissmetrics_user_aliases() as $alias) {
+        KM::alias($id, $alias);
+      }
 
-    // Convert a string of event properties into an array.
-    if (is_string($properties)) {
-      $props = _kissmetrics_generate_prop_array($properties);
+      // Convert a string of event properties into an array.
+      if (is_string($properties)) {
+        $props = _kissmetrics_generate_prop_array($properties);
+      }
+      else {
+        $props = $properties;
+      }
+
+      // Record an event if a name was specified, otherwise set properties on the
+      // identified user.
+      if (!empty($name)) {
+        KM::record($name, $props);
+      }
+      else {
+        KM::set($props);
+      }
     }
     else {
-      $props = $properties;
-    }
-
-    // Record an event if a name was specified, otherwise set properties on the
-    // identified user.
-    if (!empty($name)) {
-      KM::record($name, $props);
-    }
-    else {
-      KM::set($props);
+      watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
     }
   }
 }
@@ -283,8 +288,13 @@ function kissmetrics_user_aliases() {
 function kissmetrics_send_logged_queries() {
   if ($api_key = variable_get('kissmetrics_api_key')) {
     if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
-      KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-      KM::send_logged_queries();
+      if (class_exists('KM')) {
+        KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+        KM::send_logged_queries();
+      }
+      else {
+        watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
+      }
     }
   }
 }
