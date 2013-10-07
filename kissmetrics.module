@@ -107,6 +107,16 @@ function kissmetrics_cron() {
 }
 
 /**
+ * Implements hook_user_login().
+ */
+function kissmetrics_user_login(&$edit, $account) {
+  // Identify users the first time they log in.
+  if (empty($account->access)) {
+    kissmetrics_record_event('User logged in for the first time.');
+  }
+}
+
+/**
  * Implements hook_page_build().
  */
 function kissmetrics_page_build(&$page) {
@@ -135,15 +145,6 @@ function kissmetrics_page_build(&$page) {
     $script .= "}, 1); }";
     $script .= "_kms('//i.kissmetrics.com/i.js');";
     $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
-
-    // Identify the current user.
-    $id = kissmetrics_user_id();
-
-    $script .= "_kmq.push(['identify', '" . $id . "']);";
-
-    foreach (kissmetrics_user_aliases() as $alias) {
-      $script .= "_kmq.push(['alias', " . $id . ", '" . $alias . "' ]);";
-    }
 
     $page['page_top']['#attached']['js'] = array(
       $script => array(
@@ -184,7 +185,9 @@ function kissmetrics_record_event($name = '', $properties = array()) {
 
       // Gather all of the user's aliases.
       foreach (kissmetrics_user_aliases() as $alias) {
-        KM::alias($id, $alias);
+        if ($alias != $id) {
+          KM::alias($alias, $id);
+        }
       }
 
       // Convert a string of event properties into an array.
@@ -250,8 +253,8 @@ function kissmetrics_user_id() {
   if (user_is_logged_in()) {
     $id = $user->uid;
   }
-  elseif (module_exists('session_api'))  {
-    $id = session_api_get_sid();
+  elseif (!empty($_COOKIE['km_ai'])) {
+    $id = $_COOKIE['km_ai'];
   }
   else {
     $id = array(rand(), time());
@@ -277,6 +280,10 @@ function kissmetrics_user_aliases() {
   if (user_is_logged_in()) {
     $aliases[] = $user->mail;
     $aliases[] = $user->name;
+
+    if (!empty($_COOKIE['km_ai'])) {
+      $aliases[] = $_COOKIE['km_ai'];
+    }
   }
 
   return $aliases;
