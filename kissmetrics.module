@@ -72,31 +72,28 @@ function kissmetrics_help($path, $arg) {
  * Implements hook_libraries_info().
  */
 function kissmetrics_libraries_info() {
-  $libraries['kissmetrics'] = array(
+  $libraries['kissmetrics-php'] = array(
     'name' => 'KISSmetrics',
     'vendor url' => 'http://www.kissmetrics.com',
-    'download url' => 'https://github.com/kissmetrics/KISSmetrics',
+    'download url' => 'https://github.com/kissmetrics/kissmetrics-php',
     'version' => '0',
     'files' => array(
       'php' => array(
-        'km.php',
+        'src/KISSmetrics/Client.php',
+        'src/KISSmetrics/ClientException.php',
+        'src/KISSmetrics/Transport/Delayed.php',
+        'src/KISSmetrics/Transport/Mock.php',
+        'src/KISSmetrics/Transport/Sockets.php',
+        'src/KISSmetrics/Transport/Transport.php',
+        'src/KISSmetrics/Transport/TransportException.php',
       ),
     ),
+    'xautoload' => function($adapter) {
+      $adapter->composerJson('composer.json');
+    },
   );
 
   return $libraries;
-}
-
-/**
- * Implements hook_registry_files_alter().
- */
-function kissmetrics_registry_files_alter(&$files, $modules) {
-  if (($library = libraries_detect('kissmetrics')) && !empty($library['installed'])) {
-    $files[$library['library path'] . '/km.php'] =  array(
-      'module' => 'kissmetrics',
-      'weight' => 0,
-    );
-  }
 }
 
 /**
@@ -172,21 +169,29 @@ function kissmetrics_record_event($name = '', $properties = array()) {
   }
 
   if ($api_key = variable_get('kissmetrics_api_key')) {
-    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-    $log_dir = kissmetrics_get_directory();
+    if (class_exists('KISSmetrics\Client')) {
 
-    if (class_exists('KM')) {
-      KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
+      // Should we store the event locally and send the aggreated results on a
+      // cron run, or should we just send them directly? We can instantiate a
+      // new KISSmetrics client below depending on the user's settings.
+      $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+      if ($use_cron === TRUE) {
+        $log_dir = kissmetrics_get_directory();
+        $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Delayed::initDefault($log_dir));
+      }
+      else {
+        $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Sockets::initDefault());
+      }
 
       // Identify the current user.
       $id = kissmetrics_user_id();
 
-      KM::identify($id);
+      $km->identify($id);
 
       // Gather all of the user's aliases.
       foreach (kissmetrics_user_aliases() as $alias) {
         if ($alias != $id) {
-          KM::alias($alias, $id);
+          $km->alias($alias);
         }
       }
 
@@ -201,11 +206,14 @@ function kissmetrics_record_event($name = '', $properties = array()) {
       // Record an event if a name was specified, otherwise set properties on the
       // identified user.
       if (!empty($name)) {
-        KM::record($name, $props);
+        $km->record($name, $props);
       }
       else {
-        KM::set($props);
+        $km->set($props);
       }
+
+      $km->submit();
+      print 'done';
     }
     else {
       watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
@@ -295,9 +303,9 @@ function kissmetrics_user_aliases() {
 function kissmetrics_send_logged_queries() {
   if ($api_key = variable_get('kissmetrics_api_key')) {
     if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
-      if (class_exists('KM')) {
-        KM::init($api_key, array('use_cron' => $use_cron, 'log_dir' => $log_dir));
-        KM::send_logged_queries();
+      if (class_exists('KISSmetrics\Client')) {
+        $km_transport = KISSmetrics\Transport\Delayed::initDefault($log_dir);
+        $km_transport->sendLoggedData();
       }
       else {
         watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
