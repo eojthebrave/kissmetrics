@@ -143,7 +143,7 @@ function kissmetrics_page_build(&$page) {
     $script .= "_kms('//i.kissmetrics.com/i.js');";
     $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
 
-    $page['page_top']['#attached']['js'] = array(
+    $page['page_top']['#attached']['js'][] = array(
       $script => array(
         'type' => 'inline',
         'scope' => 'header'
