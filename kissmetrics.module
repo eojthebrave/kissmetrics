@@ -301,6 +301,9 @@ function kissmetrics_user_id($account = NULL) {
     $id = sha1($id);
   }
 
+  // Allow other modules to alter the KM identifier.
+  drupal_alter('kissmetrics_user_id', $id, $account);
+
   return $id;
 }
 
