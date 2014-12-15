@@ -196,8 +196,11 @@ function kissmetrics_client_initialize($use_cron = NULL) {
  * @param string|array $properties
  *   A string or associative array containing properties of the event.
  *   String values must be listed one per line in key|value format.
+ * @param object $account
+ *   The account of the user to record the event as, defaults to current user is
+ *   none is provided.
  */
-function kissmetrics_record_event($name = '', $properties = array()) {
+function kissmetrics_record_event($name = '', $properties = array(), $account = NULL) {
   // Only proceed if either a name or properties were specified.
   if (empty($name) && empty($properties)) {
     return;
@@ -206,12 +209,12 @@ function kissmetrics_record_event($name = '', $properties = array()) {
   if ($km = kissmetrics_client_initialize()) {
 
     // Identify the current user.
-    $id = kissmetrics_user_id();
+    $id = kissmetrics_user_id($account);
 
     $km->identify($id);
 
     // Gather all of the user's aliases.
-    foreach (kissmetrics_user_aliases() as $alias) {
+    foreach (kissmetrics_user_aliases($account) as $alias) {
       if ($alias != $id) {
         $km->alias($alias);
       }
@@ -272,14 +275,21 @@ function _kissmetrics_generate_prop_array($properties) {
 /**
  * Determines an appropriate ID for the current user.
  *
+ * @param object $account
+ *   The user account to get the id for. If none is supplied use the currently
+ *   logged in user.
+ *
  * @return int|string
  *   An ID representing the user.
  */
-function kissmetrics_user_id() {
-  global $user;
+function kissmetrics_user_id($account = NULL) {
+  if (is_null($account)) {
+    global $user;
+    $account = $user;
+  }
 
   if (user_is_logged_in()) {
-    $id = $user->uid;
+    $id = $account->uid;
   }
   elseif (!empty($_COOKIE['km_ai'])) {
     $id = $_COOKIE['km_ai'];
@@ -297,17 +307,24 @@ function kissmetrics_user_id() {
 /**
  * Determines any appropriate aliases for the current user.
  *
+ * @param object $account
+ *   The user account to get the aliases for. Defaults to the current user if
+ *   none is specified.
+ *
  * @return array
  *   An array of aliases.
  */
-function kissmetrics_user_aliases() {
-  global $user;
+function kissmetrics_user_aliases($account = NULL) {
+  if (is_null($account)) {
+    global $user;
+    $account = $user;
+  }
 
   $aliases = array();
 
   if (user_is_logged_in()) {
-    $aliases[] = $user->mail;
-    $aliases[] = $user->name;
+    $aliases[] = $account->mail;
+    $aliases[] = $account->name;
 
     if (!empty($_COOKIE['km_ai'])) {
       $aliases[] = $_COOKIE['km_ai'];
