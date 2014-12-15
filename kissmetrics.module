@@ -177,7 +177,7 @@ function kissmetrics_client_initialize($use_cron = NULL) {
   }
 
   if ($use_cron === TRUE) {
-    $log_dir = kissmetrics_get_directory();
+    $log_dir = drupal_realpath(kissmetrics_get_directory());
     $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Delayed::initDefault($log_dir));
   }
   else {
@@ -324,6 +324,7 @@ function kissmetrics_send_logged_queries() {
   if ($api_key = variable_get('kissmetrics_api_key')) {
     if ($use_cron = variable_get('kissmetrics_use_cron', TRUE) && $log_dir = kissmetrics_get_directory()) {
       if (class_exists('KISSmetrics\Client')) {
+        $log_dir = drupal_realpath($log_dir);
         $km_transport = KISSmetrics\Transport\Delayed::initDefault($log_dir);
         $km_transport->sendLoggedData();
       }
