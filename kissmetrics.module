@@ -153,6 +153,41 @@ function kissmetrics_page_build(&$page) {
 }
 
 /**
+ * Initialize and return a new KISSmetrics\Client object.
+ *
+ * @param bool $use_cron
+ *  All the requester to specify if they want to use the Sockets transport to
+ *  send events to the KISSMetrics API immediatly (TRUE). Or to use the Delayed
+ *  transport to log events locally and then send them to KISSmetrics on cron
+ *  (FALSE). If excluded, or left as NULL use the site wide settings.
+ *
+ * @return \KISSmetrics\Client
+ */
+function kissmetrics_client_initialize($use_cron = NULL) {
+  // If the user didn't specify whether or not they want to use cron to log
+  // events locally and then submit them via a cron job later on we look up the
+  // siteside setting.
+  if (is_null($use_cron)) {
+    $use_cron = variable_get('kissmetrics_use_cron', TRUE);
+  }
+
+  $api_key = variable_get('kissmetrics_api_key', FALSE);
+  if ($api_key === FALSE) {
+    return FALSE;
+  }
+
+  if ($use_cron === TRUE) {
+    $log_dir = kissmetrics_get_directory();
+    $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Delayed::initDefault($log_dir));
+  }
+  else {
+    $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Sockets::initDefault());
+  }
+
+  return $km;
+}
+
+/**
  * Record a KISSmetrics event.
  *
  * @param string $name
@@ -168,55 +203,41 @@ function kissmetrics_record_event($name = '', $properties = array()) {
     return;
   }
 
-  if ($api_key = variable_get('kissmetrics_api_key')) {
-    if (class_exists('KISSmetrics\Client')) {
+  if ($km = kissmetrics_client_initialize()) {
 
-      // Should we store the event locally and send the aggreated results on a
-      // cron run, or should we just send them directly? We can instantiate a
-      // new KISSmetrics client below depending on the user's settings.
-      $use_cron = variable_get('kissmetrics_use_cron', TRUE);
-      if ($use_cron === TRUE) {
-        $log_dir = kissmetrics_get_directory();
-        $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Delayed::initDefault($log_dir));
-      }
-      else {
-        $km = new KISSmetrics\Client($api_key, KISSmetrics\Transport\Sockets::initDefault());
-      }
+    // Identify the current user.
+    $id = kissmetrics_user_id();
 
-      // Identify the current user.
-      $id = kissmetrics_user_id();
+    $km->identify($id);
 
-      $km->identify($id);
+    // Gather all of the user's aliases.
+    foreach (kissmetrics_user_aliases() as $alias) {
+      if ($alias != $id) {
+        $km->alias($alias);
+      }
+    }
 
-      // Gather all of the user's aliases.
-      foreach (kissmetrics_user_aliases() as $alias) {
-        if ($alias != $id) {
-          $km->alias($alias);
-        }
-      }
-
-      // Convert a string of event properties into an array.
-      if (is_string($properties)) {
-        $props = _kissmetrics_generate_prop_array($properties);
-      }
-      else {
-        $props = $properties;
-      }
-
-      // Record an event if a name was specified, otherwise set properties on the
-      // identified user.
-      if (!empty($name)) {
-        $km->record($name, $props);
-      }
-      else {
-        $km->set($props);
-      }
-
-      $km->submit();
+    // Convert a string of event properties into an array.
+    if (is_string($properties)) {
+      $props = _kissmetrics_generate_prop_array($properties);
     }
     else {
-      watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
+      $props = $properties;
     }
+
+    // Record an event if a name was specified, otherwise set properties on the
+    // identified user.
+    if (!empty($name)) {
+      $km->record($name, $props);
+    }
+    else {
+      $km->set($props);
+    }
+
+    $km->submit();
+  }
+  else {
+    watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
   }
 }
 
