@@ -213,7 +213,6 @@ function kissmetrics_record_event($name = '', $properties = array()) {
       }
 
       $km->submit();
-      print 'done';
     }
     else {
       watchdog('kissmetrics', 'The KISSmetrics class is not available. Make sure that the KISSmetrics PHP library is installed properly and then ensure that the KM class is registered by clearing the site cache.', array(), WATCHDOG_ERROR);
