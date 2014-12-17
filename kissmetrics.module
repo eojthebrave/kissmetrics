@@ -114,9 +114,9 @@ function kissmetrics_user_login(&$edit, $account) {
 }
 
 /**
- * Implements hook_page_build().
+ * Implements hook_page_alter().
  */
-function kissmetrics_page_build(&$page) {
+function kissmetrics_page_alter(&$page) {
   $pages = variable_get('kissmetrics_visibility_pages', KISSMETRICS_PAGES);
   $visibility_mode = variable_get('kissmetrics_visibility_mode', KISSMETRICS_VISIBILITY_NOTLISTED);
   $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
@@ -129,7 +129,8 @@ function kissmetrics_page_build(&$page) {
     return;
   }
 
-  if ($api_key = variable_get('kissmetrics_api_key')) {
+  if ($api_key = variable_get('kissmetrics_api_key', FALSE)) {
+
     // Include the KISSmetrics JavaScript library.
     $script  = "var _kmq = _kmq || [];";
     $script .= "var _kmk = _kmk || '" . $api_key . "';";
@@ -144,10 +145,9 @@ function kissmetrics_page_build(&$page) {
     $script .= "_kms('//doug1izaerwt3.cloudfront.net/' + _kmk + '.1.js');";
 
     $page['page_top']['#attached']['js'][] = array(
-      $script => array(
-        'type' => 'inline',
-        'scope' => 'header'
-      ),
+      'data' => $script,
+      'type' => 'inline',
+      'scope' => 'header',
     );
   }
 }
