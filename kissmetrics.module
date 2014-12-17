@@ -206,35 +206,49 @@ function kissmetrics_record_event($name = '', $properties = array(), $account = 
     return;
   }
 
+  if (is_null($account)) {
+    global $user;
+    $account = $user;
+  }
+
   if ($km = kissmetrics_client_initialize()) {
+    $event = array('name' => $name);
 
     // Identify the current user.
-    $id = kissmetrics_user_id($account);
-
-    $km->identify($id);
+    $event['id'] = kissmetrics_user_id($account);
 
     // Gather all of the user's aliases.
-    foreach (kissmetrics_user_aliases($account) as $alias) {
-      if ($alias != $id) {
+    $event['aliases'] = kissmetrics_user_aliases($account);
+
+    // Convert a string of event properties into an array.
+    if (is_string($properties)) {
+      $event['properties'] = _kissmetrics_generate_prop_array($properties);
+    }
+    else {
+      $event['properties'] = $properties;
+    }
+
+    // Once all the info has been gathered give other modules a chance to alter
+    // it.
+    drupal_alter('kissmetrics_event', $event, $account);
+
+    // Build the event that will be submitted to KISSmetrics from the $event
+    // array.
+    $km->identify($event['id']);
+
+    foreach ($event['aliases'] as $alias) {
+      if ($alias != $event['id']) {
         $km->alias($alias);
       }
     }
 
-    // Convert a string of event properties into an array.
-    if (is_string($properties)) {
-      $props = _kissmetrics_generate_prop_array($properties);
-    }
-    else {
-      $props = $properties;
-    }
-
     // Record an event if a name was specified, otherwise set properties on the
     // identified user.
-    if (!empty($name)) {
-      $km->record($name, $props);
+    if (!empty($event['name'])) {
+      $km->record($event['name'], $event['properties']);
     }
     else {
-      $km->set($props);
+      $km->set($event['properties']);
     }
 
     $km->submit();
